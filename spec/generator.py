@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 import re
-from dataclasses import dataclass
 
 import anthropic
 
+from spec.feedback import Feedback
 from spec.parser import SpecDocument
 
 SYSTEM_PROMPT = """\
@@ -28,15 +28,6 @@ RETRY_ADDENDUM = """\
 You are retrying a failed implementation. Below is your previous code and the test failures it produced.
 Fix the issues while still following all the rules above. Pay close attention to the error messages.
 """
-
-
-@dataclass
-class Feedback:
-    """Structured feedback from a failed test run."""
-
-    failing_tests: list[str]
-    error_output: str
-    previous_code: str
 
 
 class ImplGenerationError(Exception):
@@ -75,7 +66,7 @@ def _build_user_prompt(spec: SpecDocument, attempt: int, feedback: Feedback | No
 
     if feedback is not None:
         parts.append("## Previous implementation\n```python\n" + feedback.previous_code + "\n```\n")
-        parts.append("## Failing tests\n" + "\n".join(f"- {t}" for t in feedback.failing_tests) + "\n")
+        parts.append("## Failing tests\n" + "\n".join(f"- {t}" for t in feedback.failing_test_names) + "\n")
         parts.append("## Error output\n```\n" + feedback.error_output + "\n```\n")
         parts.append("Fix these failures. Output ONLY the corrected Python code.\n")
 
