@@ -8,7 +8,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from spec.generator import Feedback, ImplGenerationError, ImplGenerator, _build_user_prompt, _strip_markdown_fences, _validate_syntax
+from spec.feedback import Feedback, FailingTest
+from spec.generator import ImplGenerationError, ImplGenerator, _build_user_prompt, _strip_markdown_fences, _validate_syntax
 from spec.parser import SpecDocument, parse_spec
 
 SPECS_DIR = Path(__file__).parent.parent / "specs"
@@ -78,8 +79,11 @@ class TestBuildUserPrompt:
 
     def test_retry_with_feedback(self, spec: SpecDocument):
         feedback = Feedback(
-            failing_tests=["test_foo", "test_bar"],
-            error_output="AssertionError: expected 1 got 2",
+            attempt=1,
+            failing_tests=[
+                FailingTest(name="test_foo", assertion_error="AssertionError: expected 1 got 2", context_lines=""),
+                FailingTest(name="test_bar", assertion_error="AssertionError: wrong", context_lines=""),
+            ],
             previous_code="def retry_with_backoff(): pass",
         )
         prompt = _build_user_prompt(spec, attempt=2, feedback=feedback)
@@ -110,8 +114,10 @@ class TestImplGenerator:
         mock_client.messages.create.return_value = _make_mock_response(FAKE_IMPL_CODE)
 
         feedback = Feedback(
-            failing_tests=["test_delay_is_exponential"],
-            error_output="assert delays == [0.01, 0.02, 0.04]",
+            attempt=1,
+            failing_tests=[
+                FailingTest(name="test_delay_is_exponential", assertion_error="assert delays == [0.01, 0.02, 0.04]", context_lines=""),
+            ],
             previous_code="def retry_with_backoff(): pass",
         )
 
